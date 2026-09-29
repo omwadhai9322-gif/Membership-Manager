@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Membership Manager"
+description = "A simple membership dashboard for adding members, tracking one-, two-, and three-month memberships, and seeing at a glance which memberships are active or expired."
+version = "1.0.0"
+id = "artifacts/membership-manager"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23537
+
+[services.development]
+run = "pnpm --filter @workspace/membership-manager run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/membership-manager", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/membership-manager/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23537"
+BASE_PATH = "/"

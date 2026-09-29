@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: members
+    description: Membership management
 paths:
   /healthz:
     get:
@@ -24,6 +26,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /members:
+    get:
+      operationId: getMembers
+      tags: [members]
+      summary: Get all members
+      responses:
+        "200":
+          description: All membership records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+  /addMember:
+    post:
+      operationId: addMember
+      tags: [members]
+      summary: Add a member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberInput"
+      responses:
+        "201":
+          description: The new member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          description: Invalid member data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +73,45 @@ components:
           type: string
       required:
         - status
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        membershipType:
+          type: integer
+          enum: [1, 2, 3]
+        joiningDate:
+          type: string
+          format: date
+        endingDate:
+          type: string
+          format: date
+      required:
+        - id
+        - name
+        - membershipType
+        - joiningDate
+        - endingDate
+    MemberInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        membershipType:
+          type: integer
+          enum: [1, 2, 3]
+      required:
+        - name
+        - membershipType
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 
