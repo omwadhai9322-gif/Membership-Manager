@@ -3,6 +3,7 @@ import { Router, type IRouter } from "express";
 import {
   AddMemberBody,
   AddMemberResponse,
+  DeleteMemberParams,
   GetMembersResponse,
   type Member,
 } from "@workspace/api-zod";
@@ -35,6 +36,25 @@ function addCalendarMonths(date: Date, months: number): Date {
 
 router.get("/members", (_req, res) => {
   res.json(GetMembersResponse.parse(members));
+});
+
+router.delete("/members/:id", (req, res) => {
+  const parsed = DeleteMemberParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const memberIndex = members.findIndex(
+    (member) => member.id === parsed.data.id,
+  );
+  if (memberIndex === -1) {
+    res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  members.splice(memberIndex, 1);
+  res.sendStatus(204);
 });
 
 router.post("/addMember", (req, res) => {

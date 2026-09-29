@@ -237,6 +237,14 @@ button { cursor: pointer; }
 .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 20px; background: #edf2e9; color: #58744e; font-size: 10px; font-weight: 700; }
 .status-pill.expired { background: #f5ebe6; color: #a26550; }
 .status-pill .status-dot { width: 5px; height: 5px; }
+.remove-button {
+  display: inline-grid; width: 30px; height: 30px; place-items: center; border: 0;
+  border-radius: 6px; background: transparent; color: #9a6b5d; transition: background .16s ease, color .16s ease;
+}
+.remove-button:hover:not(:disabled) { background: #f7e4de; color: #a2483e; }
+.remove-button:focus-visible { outline: 2px solid #a2483e; outline-offset: 2px; }
+.remove-button:disabled { cursor: wait; opacity: .55; }
+.remove-error { margin: 14px 22px 0; }
 .loading-wrap, .error-state, .empty-state {
   min-height: 295px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
 }

@@ -31,6 +31,16 @@ export const GetMembersResponse = zod.array(GetMembersResponseItem)
 
 
 /**
+ * @summary Remove a member
+ */
+export const DeleteMemberParams = zod.object({
+  "id": zod.coerce.string().uuid().describe('Member identifier')
+})
+
+export const DeleteMemberResponse = zod.void()
+
+
+/**
  * @summary Add a member
  */
 

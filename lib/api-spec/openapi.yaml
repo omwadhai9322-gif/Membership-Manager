@@ -40,6 +40,34 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Member"
+  /members/{id}:
+    delete:
+      operationId: deleteMember
+      tags: [members]
+      summary: Remove a member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Member identifier
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Member removed
+        "400":
+          description: Invalid member identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /addMember:
     post:
       operationId: addMember

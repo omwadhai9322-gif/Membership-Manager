@@ -6,11 +6,13 @@ import {
   ContactRound,
   Plus,
   RotateCw,
+  Trash2,
   UsersRound,
 } from 'lucide-react';
 import {
   getGetMembersQueryKey,
   useAddMember,
+  useDeleteMember,
   useGetMembers,
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -61,6 +63,7 @@ function Home() {
   const queryClient = useQueryClient();
   const membersQuery = useGetMembers();
   const addMember = useAddMember();
+  const deleteMember = useDeleteMember();
   const members = membersQuery.data ?? [];
   const today = dateKey(new Date());
   const activeCount = members.filter((member) => memberDateKey(member.endingDate) >= today).length;
@@ -77,6 +80,19 @@ function Home() {
           await queryClient.invalidateQueries({ queryKey: getGetMembersQueryKey() });
           setName('');
           setMembershipType(1);
+        },
+      },
+    );
+  };
+
+  const removeMember = (id: string, memberName: string) => {
+    if (!window.confirm(`Remove ${memberName} from the register? This cannot be undone.`)) return;
+
+    deleteMember.mutate(
+      { id },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: getGetMembersQueryKey() });
         },
       },
     );
@@ -224,6 +240,7 @@ function Home() {
                       <th scope="col">Joined</th>
                       <th scope="col">Ends</th>
                       <th scope="col">Status</th>
+                      <th scope="col">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -254,12 +271,30 @@ function Home() {
                               {active ? 'Active' : 'Expired'}
                             </span>
                           </td>
+                          <td>
+                            <button
+                              className="remove-button"
+                              type="button"
+                              aria-label={`Remove ${member.name}`}
+                              title={`Remove ${member.name}`}
+                              disabled={deleteMember.isPending}
+                              onClick={() => removeMember(member.id, member.name)}
+                              data-testid={`button-remove-member-${member.id}`}
+                            >
+                              {deleteMember.isPending ? '…' : <Trash2 size={15} />}
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+            )}
+            {deleteMember.isError && (
+              <p className="form-error remove-error" role="alert" data-testid="status-remove-error">
+                The member could not be removed. Please try again.
+              </p>
             )}
             {!membersQuery.isPending && !membersQuery.isError && members.length > 0 && (
               <div className="list-footer">{activeCount} active membership{activeCount === 1 ? '' : 's'} as of today</div>
