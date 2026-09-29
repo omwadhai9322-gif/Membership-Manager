@@ -117,7 +117,13 @@ function Home() {
 
       <div className="workspace">
         <section className="page-intro" aria-labelledby="page-title">
-          <div>
+          <img
+            className="page-intro-image"
+            src="/membership-gym-hero.jpg"
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="intro-copy">
             <p className="eyebrow">Member register / 01</p>
             <h1 className="page-title" id="page-title">Memberships</h1>
             <p className="page-subtitle">A clear record of who’s here, and until when.</p>
