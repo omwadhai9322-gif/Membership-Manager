@@ -348,6 +348,15 @@ button { cursor: pointer; }
 }
 .hero-heading span { display: block; color: #748b8c; }
 .hero-subtitle { max-width: 620px; margin: 22px 0 0; color: #7e8b89; font-size: 15px; line-height: 1.55; }
+.membership-form-link {
+  width: fit-content; min-height: 43px; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  margin-top: 17px; padding: 0 17px; border: 1px solid #25473d; border-radius: 999px;
+  background: #25473d; color: #fbfaf6; font-size: 12px; font-weight: 700; text-decoration: none;
+  box-shadow: 0 5px 13px rgba(37, 71, 61, .12);
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.membership-form-link:hover { transform: translateY(-1px); border-color: #315b4b; background: #315b4b; box-shadow: 0 7px 16px rgba(37, 71, 61, .16); }
+.membership-form-link:focus-visible { outline: 3px solid rgba(65, 131, 103, .3); outline-offset: 3px; }
 .hero-photo {
   position: relative; overflow: hidden; width: 250px; height: 166px; flex: 0 0 250px;
   border: 1px solid rgba(49, 74, 63, .12); border-radius: 22px;

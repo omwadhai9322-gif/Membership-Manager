@@ -6,6 +6,7 @@ import {
   CircleAlert,
   CircleCheck,
   ContactRound,
+  ExternalLink,
   Plus,
   RotateCw,
   Search,
@@ -151,6 +152,17 @@ function Home() {
               <span>Keep the door open.</span>
             </h1>
             <p className="hero-subtitle">Add members quickly and keep a clear eye on who is active today.</p>
+            <a
+              className="membership-form-link"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSd-jdPAAtPAj2PgVNUEuuegNg72hmq9dtmSPzASCqo5Q57-Jw/viewform?usp=dialog"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Fill Membership Form (opens in a new tab)"
+              data-testid="link-fill-membership-form"
+            >
+              Fill Membership Form
+              <ExternalLink size={15} aria-hidden="true" />
+            </a>
           </div>
           <div className="hero-photo">
             <img src="/membership-gym-hero.jpg" alt="" aria-hidden="true" />
