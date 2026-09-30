@@ -1,16 +1,14 @@
 import { defineConfig } from "drizzle-kit";
 import path from "path";
 
-const connectionString = process.env.SUPABASE_DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("SUPABASE_DATABASE_URL must be set to connect to Supabase.");
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL, ensure the database is provisioned");
 }
 
 export default defineConfig({
   schema: path.join(__dirname, "./src/schema/index.ts"),
   dialect: "postgresql",
   dbCredentials: {
-    url: connectionString,
+    url: process.env.DATABASE_URL,
   },
 });
