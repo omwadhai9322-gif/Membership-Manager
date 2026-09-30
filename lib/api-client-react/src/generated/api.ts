@@ -23,7 +23,8 @@ import type {
   ApiError,
   HealthStatus,
   Member,
-  MemberInput
+  MemberInput,
+  MemberUpdate
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -207,6 +208,95 @@ export function useGetMembers<TData = Awaited<ReturnType<typeof getMembers>>, TE
 
 
 
+
+export const getUpdateMemberUrl = (id: string,) => {
+
+
+
+
+  return `/api/members/${id}`
+}
+
+/**
+ * @summary Update a member's joining and ending dates
+ */
+export const updateMember = async (id: string,
+    memberUpdate: MemberUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Member> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Member>(getUpdateMemberUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(memberUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateMemberMutationKey = () => ['updateMember'] as const;
+
+export const getUpdateMemberMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMember>>, TError,UpdateMemberMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMember>>, TError,UpdateMemberMutationVariables, TContext> => {
+
+const mutationKey = getUpdateMemberMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMember>>, UpdateMemberMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMember(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMemberMutationResult = NonNullable<Awaited<ReturnType<typeof updateMember>>>
+    export type UpdateMemberMutationBody = BodyType<MemberUpdate>
+    export type UpdateMemberMutationError = ErrorType<ApiError>
+    export type UpdateMemberMutationVariables = {id: string;data: BodyType<MemberUpdate>}
+
+    /**
+ * @summary Update a member's joining and ending dates
+ */
+export const useUpdateMember = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMember>>, TError,UpdateMemberMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMember>>,
+        TError,
+        UpdateMemberMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateMemberMutationOptions(options));
+    }
 
 export const getDeleteMemberUrl = (id: string,) => {
 

@@ -12,3 +12,4 @@ export * from './member';
 export * from './memberInput';
 export * from './memberInputMembershipType';
 export * from './memberMembershipType';
+export * from './memberUpdate';

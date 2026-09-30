@@ -41,6 +41,11 @@ export interface MemberInput {
   membershipType: MemberInputMembershipType;
 }
 
+export interface MemberUpdate {
+  joiningDate: string;
+  endingDate: string;
+}
+
 export interface ApiError {
   error: string;
 }

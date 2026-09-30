@@ -7,17 +7,21 @@ import {
   CircleCheck,
   ContactRound,
   ExternalLink,
+  Pencil,
   Plus,
   RotateCw,
+  Save,
   Search,
   Trash2,
   UsersRound,
+  X,
 } from 'lucide-react';
 import {
   getGetMembersQueryKey,
   useAddMember,
   useDeleteMember,
   useGetMembers,
+  useUpdateMember,
 } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -70,6 +74,10 @@ function Home() {
   const membersQuery = useGetMembers();
   const addMember = useAddMember();
   const deleteMember = useDeleteMember();
+  const updateMember = useUpdateMember();
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingJoiningDate, setEditingJoiningDate] = useState('');
+  const [editingEndingDate, setEditingEndingDate] = useState('');
   const members = membersQuery.data ?? [];
   const today = dateKey(new Date());
   const activeCount = members.filter((member) => memberDateKey(member.endingDate) >= today).length;
@@ -107,6 +115,48 @@ function Home() {
       {
         onSuccess: async () => {
           await queryClient.invalidateQueries({ queryKey: getGetMembersQueryKey() });
+          setEditingMemberId((current) => (current === id ? null : current));
+        },
+      },
+    );
+  };
+
+  const startEditingDates = (member: (typeof members)[number]) => {
+    setEditingMemberId(member.id);
+    setEditingJoiningDate(memberDateKey(member.joiningDate));
+    setEditingEndingDate(memberDateKey(member.endingDate));
+  };
+
+  const cancelEditingDates = () => {
+    setEditingMemberId(null);
+    setEditingJoiningDate('');
+    setEditingEndingDate('');
+  };
+
+  const submitDateUpdate = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (
+      !editingMemberId ||
+      !editingJoiningDate ||
+      !editingEndingDate ||
+      editingEndingDate < editingJoiningDate ||
+      updateMember.isPending
+    ) {
+      return;
+    }
+
+    updateMember.mutate(
+      {
+        id: editingMemberId,
+        data: {
+          joiningDate: editingJoiningDate,
+          endingDate: editingEndingDate,
+        },
+      },
+      {
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({ queryKey: getGetMembersQueryKey() });
+          cancelEditingDates();
         },
       },
     );
@@ -302,6 +352,91 @@ function Home() {
             </label>
           </div>
 
+          {editingMemberId && members.some((member) => member.id === editingMemberId) && (
+            <form className="member-edit-panel" onSubmit={submitDateUpdate} aria-labelledby="member-edit-heading">
+              <div className="member-edit-heading">
+                <div>
+                  <p className="member-edit-kicker">EDIT MEMBERSHIP DATES</p>
+                  <h3 id="member-edit-heading">
+                    {members.find((member) => member.id === editingMemberId)?.name}
+                  </h3>
+                </div>
+                <button
+                  className="member-edit-close"
+                  type="button"
+                  aria-label="Close date editor"
+                  onClick={cancelEditingDates}
+                  disabled={updateMember.isPending}
+                >
+                  <X size={17} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="member-edit-fields">
+                <label className="member-edit-field" htmlFor="edit-joining-date">
+                  <span className="field-label">Joining date</span>
+                  <input
+                    id="edit-joining-date"
+                    className="edit-date-input"
+                    type="date"
+                    value={editingJoiningDate}
+                    onChange={(event) => setEditingJoiningDate(event.target.value)}
+                    required
+                    disabled={updateMember.isPending}
+                    data-testid="input-edit-joining-date"
+                  />
+                </label>
+                <label className="member-edit-field" htmlFor="edit-ending-date">
+                  <span className="field-label">Membership end date</span>
+                  <input
+                    id="edit-ending-date"
+                    className="edit-date-input"
+                    type="date"
+                    value={editingEndingDate}
+                    onChange={(event) => setEditingEndingDate(event.target.value)}
+                    min={editingJoiningDate || undefined}
+                    required
+                    disabled={updateMember.isPending}
+                    data-testid="input-edit-ending-date"
+                  />
+                </label>
+              </div>
+              {updateMember.isError && (
+                <p className="form-error member-edit-error" role="alert" data-testid="status-edit-error">
+                  {updateMember.error instanceof Error
+                    ? updateMember.error.message
+                    : 'The membership dates could not be updated. Please try again.'}
+                </p>
+              )}
+              <div className="member-edit-actions">
+                <button
+                  className="member-edit-cancel"
+                  type="button"
+                  onClick={cancelEditingDates}
+                  disabled={updateMember.isPending}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="member-edit-save"
+                  type="submit"
+                  disabled={
+                    !editingJoiningDate ||
+                    !editingEndingDate ||
+                    editingEndingDate < editingJoiningDate ||
+                    updateMember.isPending
+                  }
+                  data-testid="button-save-member-dates"
+                >
+                  {updateMember.isPending ? (
+                    <>Saving dates<span aria-hidden="true">…</span></>
+                  ) : (
+                    <><Save size={15} aria-hidden="true" /> Save dates</>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
           {deleteMember.isError && (
             <p className="form-error directory-error" role="alert" data-testid="status-remove-error">
               The member could not be removed. Please try again.
@@ -371,19 +506,38 @@ function Home() {
                       <span className="member-status-dot" aria-hidden="true" />
                       {active ? 'Active' : 'Expired'}
                     </span>
-                    <button
-                      className="member-remove-button"
-                      type="button"
-                      aria-label={`Remove ${member.name}`}
-                      title={`Remove ${member.name}`}
-                      disabled={deleteMember.isPending}
-                      onClick={() => removeMember(member.id, member.name)}
-                      data-testid={`button-remove-member-${member.id}`}
-                    >
-                      {deleteMember.isPending && deleteMember.variables?.id === member.id
-                        ? <span aria-hidden="true">…</span>
-                        : <Trash2 size={15} aria-hidden="true" />}
-                    </button>
+                    <div className="member-actions">
+                      <button
+                        className={`member-edit-button${editingMemberId === member.id ? ' is-editing' : ''}`}
+                        type="button"
+                        aria-label={`${editingMemberId === member.id ? 'Close date editor for' : 'Edit dates for'} ${member.name}`}
+                        aria-expanded={editingMemberId === member.id}
+                        disabled={updateMember.isPending}
+                        onClick={() => {
+                          if (editingMemberId === member.id) {
+                            cancelEditingDates();
+                          } else {
+                            startEditingDates(member);
+                          }
+                        }}
+                        data-testid={`button-edit-member-${member.id}`}
+                      >
+                        <Pencil size={15} aria-hidden="true" />
+                      </button>
+                      <button
+                        className="member-remove-button"
+                        type="button"
+                        aria-label={`Remove ${member.name}`}
+                        title={`Remove ${member.name}`}
+                        disabled={deleteMember.isPending}
+                        onClick={() => removeMember(member.id, member.name)}
+                        data-testid={`button-remove-member-${member.id}`}
+                      >
+                        {deleteMember.isPending && deleteMember.variables?.id === member.id
+                          ? <span aria-hidden="true">…</span>
+                          : <Trash2 size={15} aria-hidden="true" />}
+                      </button>
+                    </div>
                   </article>
                 );
               })

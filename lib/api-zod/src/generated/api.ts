@@ -31,6 +31,27 @@ export const GetMembersResponse = zod.array(GetMembersResponseItem)
 
 
 /**
+ * @summary Update a member's joining and ending dates
+ */
+export const UpdateMemberParams = zod.object({
+  "id": zod.coerce.string().uuid().describe('Member identifier')
+})
+
+export const UpdateMemberBody = zod.object({
+  "joiningDate": zod.coerce.date(),
+  "endingDate": zod.coerce.date()
+})
+
+export const UpdateMemberResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "membershipType": zod.union([zod.literal(1),zod.literal(2),zod.literal(3)]),
+  "joiningDate": zod.coerce.date(),
+  "endingDate": zod.coerce.date()
+})
+
+
+/**
  * @summary Remove a member
  */
 export const DeleteMemberParams = zod.object({

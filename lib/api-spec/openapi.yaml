@@ -41,6 +41,43 @@ paths:
                 items:
                   $ref: "#/components/schemas/Member"
   /members/{id}:
+    patch:
+      operationId: updateMember
+      tags: [members]
+      summary: Update a member's joining and ending dates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Member identifier
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberUpdate"
+      responses:
+        "200":
+          description: The updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          description: Invalid member identifier or dates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
     delete:
       operationId: deleteMember
       tags: [members]
@@ -135,6 +172,18 @@ components:
       required:
         - name
         - membershipType
+    MemberUpdate:
+      type: object
+      properties:
+        joiningDate:
+          type: string
+          format: date
+        endingDate:
+          type: string
+          format: date
+      required:
+        - joiningDate
+        - endingDate
     ApiError:
       type: object
       properties:

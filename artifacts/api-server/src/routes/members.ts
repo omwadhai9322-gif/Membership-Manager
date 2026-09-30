@@ -5,6 +5,9 @@ import {
   AddMemberResponse,
   DeleteMemberParams,
   GetMembersResponse,
+  UpdateMemberBody,
+  UpdateMemberParams,
+  UpdateMemberResponse,
   type Member,
 } from "@workspace/api-zod";
 
@@ -36,6 +39,41 @@ function addCalendarMonths(date: Date, months: number): Date {
 
 router.get("/members", (_req, res) => {
   res.json(GetMembersResponse.parse(members));
+});
+
+router.patch("/members/:id", (req, res) => {
+  const params = UpdateMemberParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = UpdateMemberBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (parsed.data.endingDate < parsed.data.joiningDate) {
+    res.status(400).json({ error: "Membership end date must be on or after the joining date" });
+    return;
+  }
+
+  const memberIndex = members.findIndex(
+    (member) => member.id === params.data.id,
+  );
+  if (memberIndex === -1) {
+    res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  const updatedMember = {
+    ...members[memberIndex],
+    joiningDate: parsed.data.joiningDate,
+    endingDate: parsed.data.endingDate,
+  };
+  members[memberIndex] = updatedMember;
+  res.json(UpdateMemberResponse.parse(updatedMember));
 });
 
 router.delete("/members/:id", (req, res) => {
