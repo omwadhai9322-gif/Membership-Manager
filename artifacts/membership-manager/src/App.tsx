@@ -3,9 +3,12 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import {
   BadgeCheck,
   CalendarDays,
+  CircleAlert,
+  CircleCheck,
   ContactRound,
   Plus,
   RotateCw,
+  Search,
   Trash2,
   UsersRound,
 } from 'lucide-react';
@@ -60,6 +63,8 @@ function initials(name: string) {
 function Home() {
   const [name, setName] = useState('');
   const [membershipType, setMembershipType] = useState<MembershipLength>(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
   const queryClient = useQueryClient();
   const membersQuery = useGetMembers();
   const addMember = useAddMember();
@@ -67,6 +72,13 @@ function Home() {
   const members = membersQuery.data ?? [];
   const today = dateKey(new Date());
   const activeCount = members.filter((member) => memberDateKey(member.endingDate) >= today).length;
+  const expiredCount = members.length - activeCount;
+  const activePercentage = members.length
+    ? Math.round((activeCount / members.length) * 100)
+    : 0;
+  const visibleMembers = members.filter((member) =>
+    member.name.toLocaleLowerCase().includes(searchTerm.trim().toLocaleLowerCase()),
+  );
 
   const submitMember = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -80,6 +92,7 @@ function Home() {
           await queryClient.invalidateQueries({ queryKey: getGetMembersQueryKey() });
           setName('');
           setMembershipType(1);
+          setShowAddForm(false);
         },
       },
     );
@@ -110,77 +123,129 @@ function Home() {
             <div className="brand-caption">Membership desk</div>
           </div>
         </div>
-        <time className="top-date" dateTime={today}>
-          {new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date())}
-        </time>
+        <div className="topbar-actions">
+          <time className="top-date" dateTime={today}>
+            {new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date())}
+          </time>
+          <button
+            className={`header-add-button${showAddForm ? ' is-open' : ''}`}
+            type="button"
+            aria-label={showAddForm ? 'Close add member form' : 'Add member'}
+            aria-expanded={showAddForm}
+            aria-controls="add-member-form"
+            onClick={() => setShowAddForm((current) => !current)}
+            data-testid="button-toggle-add-member"
+          >
+            {showAddForm ? <span className="header-add-close" aria-hidden="true">×</span> : <Plus size={15} aria-hidden="true" />}
+            <span className="header-add-label">{showAddForm ? 'Close' : 'Add member'}</span>
+          </button>
+        </div>
       </header>
 
       <div className="workspace">
-        <section className="page-intro" aria-labelledby="page-title">
-          <img
-            className="page-intro-image"
-            src="/membership-gym-hero.jpg"
-            alt=""
-            aria-hidden="true"
-          />
-          <div className="intro-copy">
-            <p className="eyebrow">Member register / 01</p>
-            <h1 className="page-title" id="page-title">Memberships</h1>
-            <p className="page-subtitle">A clear record of who’s here, and until when.</p>
+        <section className="overview-hero" aria-labelledby="page-title">
+          <div className="hero-copy">
+            <p className="hero-kicker"><span className="hero-kicker-dot" aria-hidden="true" />Membership overview</p>
+            <h1 className="hero-heading" id="page-title">
+              Know your people.
+              <span>Keep the door open.</span>
+            </h1>
+            <p className="hero-subtitle">Add members quickly and keep a clear eye on who is active today.</p>
           </div>
-          <div className="record-total" data-testid="text-member-count">
-            <strong>{members.length.toString().padStart(2, '0')}</strong>
-            {members.length === 1 ? 'record' : 'records'}
+          <div className="hero-photo">
+            <img src="/membership-gym-hero.jpg" alt="" aria-hidden="true" />
           </div>
         </section>
 
-        <section className="dashboard-grid" aria-label="Membership management">
-          <form className="panel form-panel" onSubmit={submitMember}>
-            <div className="panel-heading">
+        <section className="metric-grid" aria-label="Membership statistics">
+          <article className="metric-card">
+            <div className="metric-label-row">
+              <h2 className="metric-label">Total members</h2>
+              <UsersRound size={17} aria-hidden="true" />
+            </div>
+            <strong className="metric-value" data-testid="metric-total-members">
+              {membersQuery.isPending ? '—' : members.length}
+            </strong>
+            <p className="metric-caption">in your directory</p>
+          </article>
+          <article className="metric-card metric-card-active">
+            <div className="metric-label-row">
+              <h2 className="metric-label">Active now</h2>
+              <CircleCheck size={17} aria-hidden="true" />
+            </div>
+            <strong className="metric-value" data-testid="metric-active-members">
+              {membersQuery.isPending ? '—' : activeCount}
+            </strong>
+            <p className="metric-caption">
+              {members.length ? `${activePercentage}% of all members` : 'No records yet'}
+            </p>
+          </article>
+          <article className="metric-card metric-card-expired">
+            <div className="metric-label-row">
+              <h2 className="metric-label">Needs attention</h2>
+              <CircleAlert size={17} aria-hidden="true" />
+            </div>
+            <strong className="metric-value" data-testid="metric-expired-members">
+              {membersQuery.isPending ? '—' : expiredCount}
+            </strong>
+            <p className="metric-caption">expired memberships</p>
+          </article>
+        </section>
+
+        {showAddForm && (
+          <form
+            id="add-member-form"
+            className="add-member-panel"
+            onSubmit={submitMember}
+            aria-labelledby="add-member-heading"
+          >
+            <div className="add-form-heading">
               <div>
-                <h2 className="panel-title">Add a member</h2>
-                <p className="panel-kicker">Start a new membership record.</p>
+                <p className="add-form-kicker">NEW RECORD</p>
+                <h2 id="add-member-heading">Add a member</h2>
+                <p>Start a new membership record.</p>
               </div>
-              <span className="list-icon" aria-hidden="true"><Plus size={17} /></span>
+              <span className="add-form-icon" aria-hidden="true"><Plus size={18} /></span>
             </div>
-            <div className="form-rule" />
-
-            <label className="field-label" htmlFor="member-name">Member name</label>
-            <input
-              id="member-name"
-              className="name-input"
-              type="text"
-              name="name"
-              placeholder="e.g. Rowan Ellis"
-              autoComplete="name"
-              required
-              maxLength={120}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              data-testid="input-member-name"
-            />
-
-            <div className="form-rule" />
-            <span className="field-label" id="membership-length-label">Membership length</span>
-            <div className="plan-options" role="radiogroup" aria-labelledby="membership-length-label">
-              {membershipLengths.map((months) => (
-                <button
-                  key={months}
-                  className="plan-option"
-                  type="button"
-                  role="radio"
-                  aria-checked={membershipType === months}
-                  onClick={() => setMembershipType(months)}
-                  data-testid={`option-membership-${months}-months`}
-                >
-                  <span className="plan-length">{months}</span>
-                  <span className="plan-label">{months === 1 ? 'month' : 'months'}</span>
-                </button>
-              ))}
+            <div className="add-form-grid">
+              <div className="add-form-field">
+                <label className="field-label" htmlFor="member-name">Member name</label>
+                <input
+                  id="member-name"
+                  className="name-input"
+                  type="text"
+                  name="name"
+                  placeholder="e.g. Rowan Ellis"
+                  autoComplete="name"
+                  required
+                  maxLength={120}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  data-testid="input-member-name"
+                />
+              </div>
+              <div className="add-form-field">
+                <span className="field-label" id="membership-length-label">Membership length</span>
+                <div className="plan-options" role="radiogroup" aria-labelledby="membership-length-label">
+                  {membershipLengths.map((months) => (
+                    <button
+                      key={months}
+                      className="plan-option"
+                      type="button"
+                      role="radio"
+                      aria-checked={membershipType === months}
+                      onClick={() => setMembershipType(months)}
+                      data-testid={`option-membership-${months}-months`}
+                    >
+                      <span className="plan-length">{months}</span>
+                      <span className="plan-label">{months === 1 ? 'month' : 'months'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-
             <button
-              className="submit-button"
+              className="submit-button add-form-submit"
               type="submit"
               disabled={!name.trim() || addMember.isPending}
               data-testid="button-add-member"
@@ -192,37 +257,53 @@ function Home() {
               )}
             </button>
             {addMember.isError && (
-              <p className="form-error" role="alert" data-testid="status-add-error">
+              <p className="form-error add-form-error" role="alert" data-testid="status-add-error">
                 {addMember.error instanceof Error
                   ? addMember.error.message
                   : 'We couldn’t add this member. Please try again.'}
               </p>
             )}
           </form>
+        )}
 
-          <section className="panel list-panel" aria-labelledby="members-heading">
-            <div className="list-header">
-              <div className="list-heading">
-                <div className="list-icon" aria-hidden="true"><UsersRound size={17} strokeWidth={1.8} /></div>
-                <div>
-                  <h2 className="list-title" id="members-heading">All members</h2>
-                  <p className="list-subtitle">{activeCount} active · {members.length - activeCount} expired</p>
-                </div>
+        <section className="directory-section" aria-labelledby="members-heading">
+          <div className="directory-heading">
+            <div className="directory-title-block">
+              <div className="directory-title-line">
+                <h2 id="members-heading">Member directory</h2>
+                <span className="directory-count" data-testid="text-member-count">
+                  {members.length.toString().padStart(2, '0')}
+                </span>
               </div>
-              <div className="status-key" aria-label="Membership status key">
-                <span className="key-item"><span className="status-dot" />Active</span>
-                <span className="key-item"><span className="status-dot expired" />Expired</span>
-              </div>
+              <p>A quick read on everyone who has a key.</p>
             </div>
+            <label className="search-field">
+              <Search size={17} aria-hidden="true" />
+              <span className="sr-only">Search members by name</span>
+              <input
+                type="search"
+                placeholder="Search by name"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                data-testid="input-search-members"
+              />
+            </label>
+          </div>
 
+          {deleteMember.isError && (
+            <p className="form-error directory-error" role="alert" data-testid="status-remove-error">
+              The member could not be removed. Please try again.
+            </p>
+          )}
+
+          <div className="directory-list" aria-live="polite">
             {membersQuery.isPending ? (
-              <div className="loading-wrap" aria-label="Loading member records" data-testid="state-members-loading">
-                <div className="skeleton-line" />
+              <div className="directory-loading" aria-label="Loading member records" data-testid="state-members-loading">
                 <div className="skeleton-line" />
                 <div className="skeleton-line" />
               </div>
             ) : membersQuery.isError ? (
-              <div className="error-state" role="alert" data-testid="state-members-error">
+              <div className="directory-empty" role="alert" data-testid="state-members-error">
                 <div className="empty-mark"><RotateCw size={19} /></div>
                 <h3 className="empty-title">Records are unavailable</h3>
                 <p className="empty-copy">The member register couldn’t be loaded just now.</p>
@@ -230,85 +311,81 @@ function Home() {
                   Try again
                 </button>
               </div>
-            ) : members.length === 0 ? (
-              <div className="empty-state" data-testid="state-members-empty">
+            ) : visibleMembers.length === 0 ? (
+              <div className="directory-empty" data-testid={members.length ? 'state-members-no-results' : 'state-members-empty'}>
                 <div className="empty-mark"><BadgeCheck size={20} strokeWidth={1.7} /></div>
-                <h3 className="empty-title">Your register starts here</h3>
-                <p className="empty-copy">Add your first member and their record will appear in this list.</p>
+                <h3 className="empty-title">
+                  {members.length ? 'No matching members' : 'Your directory starts here'}
+                </h3>
+                <p className="empty-copy">
+                  {members.length
+                    ? 'Try another name or clear your search.'
+                    : 'Add your first member and their record will appear in this list.'}
+                </p>
+                {members.length === 0 && (
+                  <button className="empty-add-button" type="button" onClick={() => setShowAddForm(true)}>
+                    <Plus size={15} /> Add first member
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="table-scroll">
-                <table className="members-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Member</th>
-                      <th scope="col">Plan</th>
-                      <th scope="col">Joined</th>
-                      <th scope="col">Ends</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((member) => {
-                      const active = memberDateKey(member.endingDate) >= today;
-                      return (
-                        <tr
-                          key={member.id}
-                          className={active ? 'active-row' : 'expired-row'}
-                          data-testid={`row-member-${member.id}`}
-                        >
-                          <td>
-                            <div className="member-cell" data-testid={`text-member-name-${member.id}`}>
-                              <span className="member-initial" aria-hidden="true">{initials(member.name)}</span>
-                              {member.name}
-                            </div>
-                          </td>
-                          <td className="member-type" data-testid={`text-member-plan-${member.id}`}>
-                            {member.membershipType} {member.membershipType === 1 ? 'month' : 'months'}
-                          </td>
-                          <td className="date-value" data-testid={`text-joining-date-${member.id}`}>
-                            <CalendarDays size={12} aria-hidden="true" />{formatDate(member.joiningDate)}
-                          </td>
-                          <td className="date-value" data-testid={`text-ending-date-${member.id}`}>{formatDate(member.endingDate)}</td>
-                          <td data-testid={`status-membership-${member.id}`}>
-                            <span className={`status-pill${active ? '' : ' expired'}`}>
-                              <span className={`status-dot${active ? '' : ' expired'}`} />
-                              {active ? 'Active' : 'Expired'}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              className="remove-button"
-                              type="button"
-                              aria-label={`Remove ${member.name}`}
-                              title={`Remove ${member.name}`}
-                              disabled={deleteMember.isPending}
-                              onClick={() => removeMember(member.id, member.name)}
-                              data-testid={`button-remove-member-${member.id}`}
-                            >
-                              {deleteMember.isPending ? '…' : <Trash2 size={15} />}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              visibleMembers.map((member) => {
+                const active = memberDateKey(member.endingDate) >= today;
+                return (
+                  <article
+                    key={member.id}
+                    className={`member-row${active ? ' member-row-active' : ' member-row-expired'}`}
+                    data-testid={`row-member-${member.id}`}
+                  >
+                    <div className="member-identity">
+                      <span className="member-avatar" aria-hidden="true">{initials(member.name)}</span>
+                      <div className="member-copy">
+                        <h3 className="member-name" data-testid={`text-member-name-${member.id}`}>{member.name}</h3>
+                        <p className="member-meta" data-testid={`text-member-plan-${member.id}`}>
+                          <span>{member.membershipType} {member.membershipType === 1 ? 'month' : 'months'}</span>
+                          <span className="member-meta-divider" aria-hidden="true">/</span>
+                          <span>Joined {formatDate(member.joiningDate)}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="member-ending" data-testid={`text-ending-date-${member.id}`}>
+                      <CalendarDays size={16} aria-hidden="true" />
+                      <span>Ends {formatDate(member.endingDate)}</span>
+                    </div>
+                    <span
+                      className={`member-status${active ? ' is-active' : ' is-expired'}`}
+                      data-testid={`status-membership-${member.id}`}
+                    >
+                      <span className="member-status-dot" aria-hidden="true" />
+                      {active ? 'Active' : 'Expired'}
+                    </span>
+                    <button
+                      className="member-remove-button"
+                      type="button"
+                      aria-label={`Remove ${member.name}`}
+                      title={`Remove ${member.name}`}
+                      disabled={deleteMember.isPending}
+                      onClick={() => removeMember(member.id, member.name)}
+                      data-testid={`button-remove-member-${member.id}`}
+                    >
+                      {deleteMember.isPending && deleteMember.variables?.id === member.id
+                        ? <span aria-hidden="true">…</span>
+                        : <Trash2 size={15} aria-hidden="true" />}
+                    </button>
+                  </article>
+                );
+              })
             )}
-            {deleteMember.isError && (
-              <p className="form-error remove-error" role="alert" data-testid="status-remove-error">
-                The member could not be removed. Please try again.
-              </p>
-            )}
-            {!membersQuery.isPending && !membersQuery.isError && members.length > 0 && (
-              <div className="list-footer">{activeCount} active membership{activeCount === 1 ? '' : 's'} as of today</div>
-            )}
-          </section>
+          </div>
+
+          {!membersQuery.isPending && !membersQuery.isError && members.length > 0 && (
+            <p className="directory-footer" data-testid="text-visible-member-count">
+              Showing {visibleMembers.length} of {members.length} {members.length === 1 ? 'member' : 'members'}
+            </p>
+          )}
         </section>
 
-        <p className="page-note">Memberships are counted active through their ending date</p>
+        <p className="page-note">Memberships remain active through their ending date</p>
       </div>
     </main>
   );
