@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
+import { desc, eq } from "drizzle-orm";
+import { db, membersTable } from "@workspace/db";
 import {
   AddMemberBody,
   AddMemberResponse,
@@ -12,7 +14,6 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-const members: Member[] = [];
 
 function addCalendarMonths(date: Date, months: number): Date {
   const year = date.getUTCFullYear();
@@ -37,11 +38,22 @@ function addCalendarMonths(date: Date, months: number): Date {
   );
 }
 
-router.get("/members", (_req, res) => {
+router.get("/members", async (_req, res): Promise<void> => {
+  const members = await db
+    .select({
+      id: membersTable.id,
+      name: membersTable.name,
+      membershipType: membersTable.membershipType,
+      joiningDate: membersTable.joiningDate,
+      endingDate: membersTable.endingDate,
+    })
+    .from(membersTable)
+    .orderBy(desc(membersTable.createdAt));
+
   res.json(GetMembersResponse.parse(members));
 });
 
-router.patch("/members/:id", (req, res) => {
+router.patch("/members/:id", async (req, res): Promise<void> => {
   const params = UpdateMemberParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -59,43 +71,44 @@ router.patch("/members/:id", (req, res) => {
     return;
   }
 
-  const memberIndex = members.findIndex(
-    (member) => member.id === params.data.id,
-  );
-  if (memberIndex === -1) {
+  const [updatedMember] = await db
+    .update(membersTable)
+    .set({
+      joiningDate: parsed.data.joiningDate,
+      endingDate: parsed.data.endingDate,
+    })
+    .where(eq(membersTable.id, params.data.id))
+    .returning();
+
+  if (!updatedMember) {
     res.status(404).json({ error: "Member not found" });
     return;
   }
 
-  const updatedMember = {
-    ...members[memberIndex],
-    joiningDate: parsed.data.joiningDate,
-    endingDate: parsed.data.endingDate,
-  };
-  members[memberIndex] = updatedMember;
   res.json(UpdateMemberResponse.parse(updatedMember));
 });
 
-router.delete("/members/:id", (req, res) => {
+router.delete("/members/:id", async (req, res): Promise<void> => {
   const parsed = DeleteMemberParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const memberIndex = members.findIndex(
-    (member) => member.id === parsed.data.id,
-  );
-  if (memberIndex === -1) {
+  const [deletedMember] = await db
+    .delete(membersTable)
+    .where(eq(membersTable.id, parsed.data.id))
+    .returning({ id: membersTable.id });
+
+  if (!deletedMember) {
     res.status(404).json({ error: "Member not found" });
     return;
   }
 
-  members.splice(memberIndex, 1);
   res.sendStatus(204);
 });
 
-router.post("/addMember", (req, res) => {
+router.post("/addMember", async (req, res): Promise<void> => {
   const body =
     req.body && typeof req.body === "object"
       ? (req.body as Record<string, unknown>)
@@ -112,15 +125,22 @@ router.post("/addMember", (req, res) => {
   }
 
   const today = new Date();
-  const member: Member = {
-    id: randomUUID(),
-    name: parsed.data.name,
-    membershipType: parsed.data.membershipType,
-    joiningDate: today,
-    endingDate: addCalendarMonths(today, parsed.data.membershipType),
-  };
+  const [member] = await db
+    .insert(membersTable)
+    .values({
+      id: randomUUID(),
+      name: parsed.data.name,
+      membershipType: parsed.data.membershipType,
+      joiningDate: today,
+      endingDate: addCalendarMonths(today, parsed.data.membershipType),
+    })
+    .returning();
 
-  members.unshift(member);
+  if (!member) {
+    res.status(500).json({ error: "Could not create member" });
+    return;
+  }
+
   res.status(201).json(AddMemberResponse.parse(member));
 });
 
